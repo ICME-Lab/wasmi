@@ -317,7 +317,7 @@ impl Instruction {
                 opcode: RV32IM::from_str(&self.to_string()).unwrap(),
                 rs1: None,
                 rs2: None,
-                rd: Some(value.0 as u64),
+                rd: Some(value.0 as u16 as u32 as u64),
                 imm: None,
                 virtual_sequence_remaining: None,
             },
@@ -330,9 +330,9 @@ fn trace_r(inst: &Instruction, result: Reg, lhs: Reg, rhs: Reg, address: u64) ->
     ELFInstruction {
         address,
         opcode: RV32IM::from_str(&inst.to_string()).unwrap(),
-        rs1: Some(lhs.0 as u64),
-        rs2: Some(rhs.0 as u64),
-        rd: Some(result.0 as u64),
+        rs1: Some(lhs.0 as u16 as u32 as u64),
+        rs2: Some(rhs.0 as u16 as u32 as u64),
+        rd: Some(result.0 as u16 as u32 as u64),
         imm: None,
         virtual_sequence_remaining: None,
     }

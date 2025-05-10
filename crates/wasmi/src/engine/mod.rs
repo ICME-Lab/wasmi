@@ -16,7 +16,7 @@ mod tests;
 
 pub(crate) use self::{
     block_type::BlockType,
-    executor::Stack,
+    executor::{FrameRegisters, Stack},
     func_types::DedupFuncType,
     translator::{
         FuncTranslationDriver,

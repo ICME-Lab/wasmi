@@ -143,6 +143,8 @@ impl<'engine> Executor<'engine> {
             println!("Instruction: {inst:#?}");
             println!("ELFInstruction: {trace_inst:#?}");
             println!("==========================================");
+            self.tracer.start_instruction(trace_inst);
+            self.tracer.capture_pre_state(&self.sp);
             match *inst {
                 Instr::Trap { trap_code } => self.execute_trap(trap_code)?,
                 Instr::ConsumeFuel { block_fuel } => {
@@ -2430,6 +2432,7 @@ impl<'engine> Executor<'engine> {
                 }
                 unsupported => panic!("encountered unsupported Wasmi instruction: {unsupported:?}"),
             }
+            self.tracer.capture_post_state(&self.sp);
         }
     }
 }
