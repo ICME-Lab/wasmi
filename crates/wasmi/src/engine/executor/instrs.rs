@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{println, rc::Rc};
 
 pub use self::call::dispatch_host_func;
 use super::{cache::CachedInstance, InstructionPtr, Stack};
@@ -139,6 +139,7 @@ impl<'engine> Executor<'engine> {
         use Instruction as Instr;
         loop {
             let instruction = self.ip.get();
+            println!("Executing instruction: {:?}", instruction);
             match *instruction {
                 Instr::Trap { trap_code } => self.execute_trap(trap_code)?,
                 Instr::ConsumeFuel { block_fuel } => {

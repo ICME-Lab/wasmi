@@ -3,7 +3,6 @@ use crate::{
     display::{DisplayExportedFuncs, DisplayFuncType, DisplaySequence, DisplayValue},
 };
 use anyhow::{anyhow, bail, Error, Result};
-use clap::Parser;
 use context::Context;
 use std::{path::Path, process};
 use wasmi::{Func, FuncType, Val};
