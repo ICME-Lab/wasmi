@@ -148,7 +148,7 @@ mod test_lib {
         let device_count = "100".to_string(); // Number of IoT devices or meters in the network.
         let baseline_price = "100".to_string(); // A baseline price or factor used for further calculations (e.g., cost per watt-hour or an
                                                 // index).
-        let file_path = "binaries/energy_usage.wasm";
+        let file_path = "binaries/energy_usage_32.wasm";
         let args = Args::new(
             file_path,
             "main",
