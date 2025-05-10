@@ -15,7 +15,7 @@ use crate::{
     memory::DataSegment,
     store::{PrunedStore, StoreInner},
     table::ElementSegment,
-    tracer::Tracer,
+    tracer::{self, Tracer},
     Error,
     Func,
     FuncRef,
@@ -70,10 +70,11 @@ pub fn execute_instrs<'engine>(
     store: &mut PrunedStore,
     stack: &'engine mut Stack,
     code_map: &'engine CodeMap,
+    tracer: Rc<Tracer>,
 ) -> Result<(), Error> {
     let instance = stack.calls.instance_expect();
     let cache = CachedInstance::new(store.inner_mut(), instance);
-    let mut executor = Executor::new(stack, code_map, cache);
+    let mut executor = Executor::new(stack, code_map, cache, tracer);
     if let Err(error) = executor.execute(store) {
         if error.is_out_of_fuel() {
             if let Some(frame) = executor.stack.calls.peek_mut() {
@@ -112,8 +113,8 @@ impl<'engine> Executor<'engine> {
         stack: &'engine mut Stack,
         code_map: &'engine CodeMap,
         cache: CachedInstance,
+        tracer: Rc<Tracer>,
     ) -> Self {
-        let tracer = Rc::new(Tracer::new());
         let frame = stack
             .calls
             .peek()
@@ -2433,6 +2434,7 @@ impl<'engine> Executor<'engine> {
                 unsupported => panic!("encountered unsupported Wasmi instruction: {unsupported:?}"),
             }
             self.tracer.capture_post_state(&self.sp);
+            self.tracer.end_instruction();
         }
     }
 }

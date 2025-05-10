@@ -41,7 +41,6 @@ pub fn run(args: Args) -> Result<()> {
         Ok(()) => {
             print_remaining_fuel(&args, &ctx);
             print_pretty_results(&func_results);
-            Ok(())
         }
         Err(error) => {
             if let Some(exit_code) = error.i32_exit_status() {
@@ -54,7 +53,16 @@ pub fn run(args: Args) -> Result<()> {
             }
             bail!("failed during execution of {func_name}: {error}")
         }
-    }
+    };
+
+    // let mut rows = emulator.get_mut_cpu().tracer.rows.try_borrow_mut().unwrap();
+    let mut rows = ctx.store().tracer.rows.try_borrow_mut().unwrap();
+    let mut output = Vec::new();
+    output.append(&mut rows);
+    drop(rows);
+
+    println!("Trace: {output:#?}");
+    Ok(())
 }
 
 /// Prints the remaining fuel so far if fuel metering was enabled.

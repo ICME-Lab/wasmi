@@ -109,7 +109,8 @@ impl Args {
     /// If the socket address in `--tcplisten` cannot be parsed.
     /// If the directory in `--dir` cannot be opened.
     pub fn new(file_path: &str, func_name: &str, func_args: Vec<String>) -> Self {
-        let mut args = Self::parse_from(["wasmi-cli", file_path, "--invoke", func_name]);
+        let mut args =
+            Self::parse_from(["wasmi-cli", file_path, "--invoke", func_name, "--verbose"]);
         args.func_args = func_args;
         args
     }

@@ -63,7 +63,7 @@ impl Tracer {
         let row = rows.last_mut().unwrap();
 
         if let Some(rd) = row.instruction.rd {
-            //     row.register_state.rd_post_val = Some(normalize_register_value(reg[rd as usize], xlen));
+            // row.register_state.rd_post_val = Some(normalize_register_value(reg[rd as usize], xlen));
             row.register_state.rd_post_val =
                 Some(unsafe { reg.get(Reg::from(rd as i16)).to_bits64() });
         }
