@@ -101,6 +101,20 @@ pub struct Args {
     func_args: Vec<String>,
 }
 
+impl Args {
+    /// Creates a new [`Args`] instance.
+    ///
+    /// # Errors
+    ///
+    /// If the socket address in `--tcplisten` cannot be parsed.
+    /// If the directory in `--dir` cannot be opened.
+    pub fn new(file_path: &str, func_name: &str, func_args: Vec<String>) -> Self {
+        let mut args = Self::parse_from(["wasmi-cli", file_path, "--invoke", func_name]);
+        args.func_args = func_args;
+        args
+    }
+}
+
 /// The chosen Wasmi compilation mode.
 #[derive(Debug, Default, Copy, Clone, ValueEnum)]
 enum CompilationMode {

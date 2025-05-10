@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 pub use self::call::dispatch_host_func;
 use super::{cache::CachedInstance, InstructionPtr, Stack};
 use crate::{
@@ -13,6 +15,7 @@ use crate::{
     memory::DataSegment,
     store::{PrunedStore, StoreInner},
     table::ElementSegment,
+    tracer::Tracer,
     Error,
     Func,
     FuncRef,
@@ -99,6 +102,7 @@ struct Executor<'engine> {
     ///
     /// [`Engine`]: crate::Engine
     code_map: &'engine CodeMap,
+    pub tracer: Rc<Tracer>,
 }
 
 impl<'engine> Executor<'engine> {
@@ -109,6 +113,7 @@ impl<'engine> Executor<'engine> {
         code_map: &'engine CodeMap,
         cache: CachedInstance,
     ) -> Self {
+        let tracer = Rc::new(Tracer::new());
         let frame = stack
             .calls
             .peek()
@@ -124,6 +129,7 @@ impl<'engine> Executor<'engine> {
             cache,
             stack,
             code_map,
+            tracer,
         }
     }
 
@@ -132,7 +138,8 @@ impl<'engine> Executor<'engine> {
     fn execute(&mut self, store: &mut PrunedStore) -> Result<(), Error> {
         use Instruction as Instr;
         loop {
-            match *self.ip.get() {
+            let instruction = self.ip.get();
+            match *instruction {
                 Instr::Trap { trap_code } => self.execute_trap(trap_code)?,
                 Instr::ConsumeFuel { block_fuel } => {
                     self.execute_consume_fuel(store.inner_mut(), block_fuel)?

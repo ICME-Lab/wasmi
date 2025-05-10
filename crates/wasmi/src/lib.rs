@@ -105,6 +105,7 @@ mod memory;
 mod module;
 mod store;
 mod table;
+mod tracer;
 mod value;
 
 /// Definitions from the `wasmi_core` crate.
