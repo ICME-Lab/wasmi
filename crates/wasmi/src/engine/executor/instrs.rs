@@ -138,10 +138,12 @@ impl<'engine> Executor<'engine> {
     fn execute(&mut self, store: &mut PrunedStore) -> Result<(), Error> {
         use Instruction as Instr;
         loop {
-            let instruction = self.ip.get();
-            let trace_inst = instruction.trace(self.pc() as u64);
-            println!("Executing instruction: {:?}", trace_inst);
-            match *instruction {
+            let inst = self.ip.get();
+            let trace_inst = inst.trace(self.pc() as u64);
+            println!("Instruction: {inst:#?}");
+            println!("ELFInstruction: {trace_inst:#?}");
+            println!("==========================================");
+            match *inst {
                 Instr::Trap { trap_code } => self.execute_trap(trap_code)?,
                 Instr::ConsumeFuel { block_fuel } => {
                     self.execute_consume_fuel(store.inner_mut(), block_fuel)?
