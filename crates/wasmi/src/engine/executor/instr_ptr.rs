@@ -61,4 +61,13 @@ impl InstructionPtr {
         //         of valid bounds using this method.
         unsafe { &*self.ptr }
     }
+
+    /// Calculates the distance between two [`InstructionPtr] in units of [`UntypedValue`].
+    #[inline]
+    pub fn offset_from(self, other: Self) -> isize {
+        // SAFETY: Within Wasm bytecode execution we are guaranteed by
+        //         Wasm validation and `wasmi` codegen to never run out
+        //         of valid bounds using this method.
+        unsafe { self.ptr.offset_from(other.ptr) }
+    }
 }

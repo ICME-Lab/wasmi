@@ -524,7 +524,7 @@ impl From<AnyConst16> for u64 {
 /// Upon use the small 32-bit value has to be sign-extended to
 /// the actual integer type, e.g. `i32` or `i64`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct AnyConst32(u32);
+pub struct AnyConst32(pub u32);
 
 impl TryFrom<u64> for AnyConst32 {
     type Error = OutOfBoundsConst;

@@ -48,7 +48,6 @@ impl EngineFunc {
     /// # Note
     ///
     /// This is a test-only API and not meant for code outside of tests.
-    #[cfg(test)]
     pub fn from_u32(index: u32) -> Self {
         Self(index)
     }

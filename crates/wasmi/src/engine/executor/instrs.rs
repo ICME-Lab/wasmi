@@ -139,7 +139,8 @@ impl<'engine> Executor<'engine> {
         use Instruction as Instr;
         loop {
             let instruction = self.ip.get();
-            println!("Executing instruction: {:?}", instruction);
+            let trace_inst = instruction.trace(self.pc() as u64);
+            println!("Executing instruction: {:?}", trace_inst);
             match *instruction {
                 Instr::Trap { trap_code } => self.execute_trap(trap_code)?,
                 Instr::ConsumeFuel { block_fuel } => {
@@ -2428,6 +2429,14 @@ impl<'engine> Executor<'engine> {
                 unsupported => panic!("encountered unsupported Wasmi instruction: {unsupported:?}"),
             }
         }
+    }
+}
+
+impl<'engine> Executor<'engine> {
+    fn pc(&self) -> usize {
+        let compiled_func = self.code_map.get(None, EngineFunc::from_u32(0)).unwrap();
+        let base_ptr = InstructionPtr::new(compiled_func.instrs().as_ptr());
+        self.ip.offset_from(base_ptr) as usize
     }
 }
 

@@ -304,7 +304,7 @@ impl Instruction {
         Err(self)
     }
 
-    fn trace(&self, instruction_address: u64) -> ELFInstruction {
+    pub fn trace(&self, instruction_address: u64) -> ELFInstruction {
         match *self {
             Self::I32Add { result, lhs, rhs }
             | Self::I32Sub { result, lhs, rhs }
@@ -312,6 +312,15 @@ impl Instruction {
                 trace_r(self, result, lhs, rhs, instruction_address)
             }
 
+            Self::ReturnImm32 { value } => ELFInstruction {
+                address: instruction_address,
+                opcode: RV32IM::from_str(&self.to_string()).unwrap(),
+                rs1: None,
+                rs2: None,
+                rd: Some(value.0 as u64),
+                imm: None,
+                virtual_sequence_remaining: None,
+            },
             _ => todo!("trace instruction: {self:?}"),
         }
     }
@@ -329,10 +338,16 @@ fn trace_r(inst: &Instruction, result: Reg, lhs: Reg, rhs: Reg, address: u64) ->
     }
 }
 
+#[allow(clippy::to_string_trait_impl)]
 impl ToString for Instruction {
     fn to_string(&self) -> String {
         match *self {
-            Self::I32Add { result, lhs, rhs } => "I32Add".to_string(),
+            Self::I32Add { .. } => "I32Add".to_string(),
+            Self::I32Sub { .. } => "I32Sub".to_string(),
+            Self::I32Mul { .. } => "I32Mul".to_string(),
+
+            Self::ReturnImm32 { .. } => "ReturnImm32".to_string(),
+
             _ => todo!("to_string instruction: {self:?}"),
         }
     }
