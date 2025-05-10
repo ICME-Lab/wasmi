@@ -1853,17 +1853,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasmi_cli"
-version = "0.46.0"
-dependencies = [
- "anyhow",
- "assert_cmd",
- "clap",
- "wasmi 0.46.0",
- "wasmi_wasi",
-]
-
-[[package]]
 name = "wasmi_collections"
 version = "0.46.0"
 dependencies = [
@@ -1911,6 +1900,18 @@ version = "0.46.0"
 dependencies = [
  "common",
  "wasmi_core 0.46.0",
+]
+
+[[package]]
+name = "wasmi_tracer"
+version = "0.46.0"
+dependencies = [
+ "anyhow",
+ "assert_cmd",
+ "clap",
+ "common",
+ "wasmi 0.46.0",
+ "wasmi_wasi",
 ]
 
 [[package]]

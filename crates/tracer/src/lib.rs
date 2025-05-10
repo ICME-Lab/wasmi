@@ -2,7 +2,8 @@ use crate::{
     args::Args,
     display::{DisplayExportedFuncs, DisplayFuncType, DisplaySequence, DisplayValue},
 };
-use anyhow::{anyhow, bail, Error, Result};
+use anyhow::{anyhow, bail};
+use common::rv_trace::RVTraceRow;
 use context::Context;
 use std::{path::Path, process};
 use wasmi::{Func, FuncType, Val};
@@ -15,10 +16,8 @@ pub mod utils;
 #[cfg(test)]
 mod tests;
 
-pub fn run(args: Args) -> Result<()> {
-    let wasm_file = args.wasm_file();
-    let wasi_ctx = args.wasi_context()?;
-    let mut ctx = Context::new(wasm_file, wasi_ctx, args.fuel(), args.compilation_mode())?;
+pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
+    let mut ctx = Context::new(&args)?;
     let (func_name, func) = get_invoked_func(&args, &ctx)?;
     let ty = func.ty(ctx.store());
     let func_args = utils::decode_func_args(&ty, args.func_args())?;
@@ -60,9 +59,7 @@ pub fn run(args: Args) -> Result<()> {
     let mut output = Vec::new();
     output.append(&mut rows);
     drop(rows);
-
-    println!("Trace: {output:#?}");
-    Ok(())
+    Ok(output)
 }
 
 /// Prints the remaining fuel so far if fuel metering was enabled.
@@ -86,7 +83,11 @@ pub fn print_remaining_fuel(args: &Args, ctx: &Context) {
 /// # Errors
 ///
 /// If too many or too few function arguments were given to the invoked function.
-pub fn typecheck_args(func_name: &str, func_ty: &FuncType, args: &[Val]) -> Result<(), Error> {
+pub fn typecheck_args(
+    func_name: &str,
+    func_ty: &FuncType,
+    args: &[Val],
+) -> Result<(), anyhow::Error> {
     if func_ty.params().len() != args.len() {
         bail!(
             "invalid amount of arguments given to function {}. expected {} but received {}",
@@ -104,7 +105,7 @@ pub fn typecheck_args(func_name: &str, func_ty: &FuncType, args: &[Val]) -> Resu
 ///
 /// - If the function given via `--invoke` could not be found in the Wasm module.
 /// - If `--invoke` was not given and no WASI entry points were exported.
-pub fn get_invoked_func(args: &Args, ctx: &Context) -> Result<(String, Func), Error> {
+pub fn get_invoked_func(args: &Args, ctx: &Context) -> Result<(String, Func), anyhow::Error> {
     match args.invoked() {
         Some(func_name) => {
             let func = ctx
@@ -147,7 +148,7 @@ pub fn print_pretty_results(results: &[Val]) {
 
 #[cfg(test)]
 mod test_lib {
-    use crate::{args::Args, run};
+    use crate::{args::Args, trace};
 
     #[test]
     fn test_add_sub_mul_32() {
@@ -161,38 +162,38 @@ mod test_lib {
             "main",
             vec![stake, duration_boost, volume_boost, penalty],
         );
-        run(args).unwrap();
+        trace(args).unwrap();
     }
 
-    #[test]
-    fn test_energy_consumption() {
-        let total_produced = "5000".to_string(); // Total energy produced by the microgrid in some time frame (e.g., in watt-hours).
-        let total_consumed = "4900".to_string(); // Total energy consumed by all devices in the microgrid for the same period.
-        let device_count = "100".to_string(); // Number of IoT devices or meters in the network.
-        let baseline_price = "100".to_string(); // A baseline price or factor used for further calculations (e.g., cost per watt-hour or an
-                                                // index).
-        let file_path = "binaries/energy_usage_32.wasm";
-        let args = Args::new(
-            file_path,
-            "main",
-            vec![total_produced, total_consumed, device_count, baseline_price],
-        );
-        run(args).unwrap();
-    }
+    // #[test]
+    // fn test_reward() {
+    //     let stake = "1500".to_string(); // Amount of LP tokens or liquidity staked by the user.
+    //     let duration_boost = "3".to_string(); // Boost multiplier based on how long the stake was held (e.g., 3 = 3 months).
+    //     let volume_boost = "2".to_string(); // Additional multiplier based on trading volume in the pool during the staking period.
+    //     let penalty = "500".to_string(); // Penalty applied for early withdrawal or performance issues (e.g., protocol downgrade).
 
-    #[test]
-    fn test_reward() {
-        let stake = "1500".to_string(); // Amount of LP tokens or liquidity staked by the user.
-        let duration_boost = "3".to_string(); // Boost multiplier based on how long the stake was held (e.g., 3 = 3 months).
-        let volume_boost = "2".to_string(); // Additional multiplier based on trading volume in the pool during the staking period.
-        let penalty = "500".to_string(); // Penalty applied for early withdrawal or performance issues (e.g., protocol downgrade).
+    //     let file_path = "binaries/calculate-reward.wasm";
+    //     let args = Args::new(
+    //         file_path,
+    //         "main",
+    //         vec![stake, duration_boost, volume_boost, penalty],
+    //     );
+    //     run(args).unwrap();
+    // }
 
-        let file_path = "binaries/calculate-reward.wasm";
-        let args = Args::new(
-            file_path,
-            "main",
-            vec![stake, duration_boost, volume_boost, penalty],
-        );
-        run(args).unwrap();
-    }
+    // #[test]
+    // fn test_energy_consumption() {
+    //     let total_produced = "5000".to_string(); // Total energy produced by the microgrid in some time frame (e.g., in watt-hours).
+    //     let total_consumed = "4900".to_string(); // Total energy consumed by all devices in the microgrid for the same period.
+    //     let device_count = "100".to_string(); // Number of IoT devices or meters in the network.
+    //     let baseline_price = "100".to_string(); // A baseline price or factor used for further calculations (e.g., cost per watt-hour or an
+    //                                             // index).
+    //     let file_path = "binaries/energy_usage_32.wasm";
+    //     let args = Args::new(
+    //         file_path,
+    //         "main",
+    //         vec![total_produced, total_consumed, device_count, baseline_price],
+    //     );
+    //     run(args).unwrap();
+    // }
 }

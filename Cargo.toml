@@ -3,7 +3,7 @@ members = [
     "crates/collections",
     "crates/c_api/artifact",
     "crates/c_api/macro",
-    "crates/cli",
+    "crates/tracer",
     "crates/core",
     "crates/wasmi",
     "crates/wasi",

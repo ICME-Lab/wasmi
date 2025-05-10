@@ -141,9 +141,6 @@ impl<'engine> Executor<'engine> {
         loop {
             let inst = self.ip.get();
             let trace_inst = inst.trace(self.pc() as u64);
-            println!("Instruction: {inst:#?}");
-            println!("ELFInstruction: {trace_inst:#?}");
-            println!("==========================================");
             self.tracer.start_instruction(trace_inst);
             self.tracer.capture_pre_state(&self.sp);
             match *inst {
