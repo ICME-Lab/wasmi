@@ -1909,6 +1909,7 @@ dependencies = [
 name = "wasmi_ir"
 version = "0.46.0"
 dependencies = [
+ "common",
  "wasmi_core 0.46.0",
 ]
 

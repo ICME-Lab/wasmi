@@ -31,12 +31,12 @@ impl Tracer {
     }
 
     pub fn capture_pre_state(&self, reg: [i64; 32]) {
-        // if !*self.open.try_borrow().unwrap() {
-        //     return;
-        // }
+        if !*self.open.try_borrow().unwrap() {
+            return;
+        }
 
-        // let mut rows = self.rows.try_borrow_mut().unwrap();
-        // let row = rows.last_mut().unwrap();
+        let mut rows = self.rows.try_borrow_mut().unwrap();
+        let row = rows.last_mut().unwrap();
 
         // if let Some(rs1) = row.instruction.rs1 {
         //     row.register_state.rs1_val = Some(normalize_register_value(reg[rs1 as usize], xlen));
@@ -48,12 +48,12 @@ impl Tracer {
     }
 
     pub fn capture_post_state(&self, reg: [i64; 32]) {
-        // if !*self.open.try_borrow().unwrap() {
-        //     return;
-        // }
+        if !*self.open.try_borrow().unwrap() {
+            return;
+        }
 
-        // let mut rows = self.rows.try_borrow_mut().unwrap();
-        // let row = rows.last_mut().unwrap();
+        let mut rows = self.rows.try_borrow_mut().unwrap();
+        let row = rows.last_mut().unwrap();
 
         // if let Some(rd) = row.instruction.rd {
         //     row.register_state.rd_post_val = Some(normalize_register_value(reg[rd as usize], xlen));

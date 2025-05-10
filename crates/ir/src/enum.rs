@@ -1,9 +1,15 @@
+use common::rv_trace::{ELFInstruction, RV32IM};
+
 #[cfg(feature = "simd")]
 use crate::core::simd::{ImmLaneIdx16, ImmLaneIdx2, ImmLaneIdx4, ImmLaneIdx8};
 #[cfg(all(feature = "simd", doc))]
 use crate::core::V128;
 use crate::{core::TrapCode, index::*, primitive::Offset64Hi, *};
-use ::core::num::{NonZeroI32, NonZeroI64, NonZeroU32, NonZeroU64};
+use ::core::{
+    num::{NonZeroI32, NonZeroI64, NonZeroU32, NonZeroU64},
+    str::FromStr,
+};
+use std::string::{String, ToString};
 
 macro_rules! define_enum {
     (
@@ -296,6 +302,39 @@ impl Instruction {
             return Ok((lane, index::Memory::from(u32::from(imm32))));
         }
         Err(self)
+    }
+
+    fn trace(&self, instruction_address: u64) -> ELFInstruction {
+        match *self {
+            Self::I32Add { result, lhs, rhs }
+            | Self::I32Sub { result, lhs, rhs }
+            | Self::I32Mul { result, lhs, rhs } => {
+                trace_r(self, result, lhs, rhs, instruction_address)
+            }
+
+            _ => todo!("trace instruction: {self:?}"),
+        }
+    }
+}
+
+fn trace_r(inst: &Instruction, result: Reg, lhs: Reg, rhs: Reg, address: u64) -> ELFInstruction {
+    ELFInstruction {
+        address,
+        opcode: RV32IM::from_str(&inst.to_string()).unwrap(),
+        rs1: Some(lhs.0 as u64),
+        rs2: Some(rhs.0 as u64),
+        rd: Some(result.0 as u64),
+        imm: None,
+        virtual_sequence_remaining: None,
+    }
+}
+
+impl ToString for Instruction {
+    fn to_string(&self) -> String {
+        match *self {
+            Self::I32Add { result, lhs, rhs } => "I32Add".to_string(),
+            _ => todo!("to_string instruction: {self:?}"),
+        }
     }
 }
 

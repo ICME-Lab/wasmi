@@ -11,21 +11,15 @@ readme.workspace = true
 license.workspace = true
 keywords.workspace = true
 categories.workspace = true
-exclude = [
-    "benches/wat",
-    "benches/wasm",
-    "tests/spec/testsuite",
-    "**.wast",
-]
+exclude = ["benches/wat", "benches/wasm", "tests/spec/testsuite", "**.wast"]
 
 [dependencies]
 wasmi_core = { workspace = true }
+common = { path = "../../../zkml-jolt/common" }
 
 [features]
 default = ["std"]
-std = [
-    "wasmi_core/std",
-]
+std = ["wasmi_core/std"]
 simd = ["wasmi_core/simd"]
 
 [package.metadata.docs.rs]
