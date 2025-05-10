@@ -142,7 +142,7 @@ mod test_lib {
     use crate::{args::Args, run};
 
     #[test]
-    fn test_run() {
+    fn test_energy_consumption() {
         let total_produced = "5000".to_string(); // Total energy produced by the microgrid in some time frame (e.g., in watt-hours).
         let total_consumed = "4900".to_string(); // Total energy consumed by all devices in the microgrid for the same period.
         let device_count = "100".to_string(); // Number of IoT devices or meters in the network.
@@ -153,6 +153,22 @@ mod test_lib {
             file_path,
             "main",
             vec![total_produced, total_consumed, device_count, baseline_price],
+        );
+        run(args).unwrap();
+    }
+
+    #[test]
+    fn test_reward() {
+        let stake = "1500".to_string(); // Amount of LP tokens or liquidity staked by the user.
+        let duration_boost = "3".to_string(); // Boost multiplier based on how long the stake was held (e.g., 3 = 3 months).
+        let volume_boost = "2".to_string(); // Additional multiplier based on trading volume in the pool during the staking period.
+        let penalty = "500".to_string(); // Penalty applied for early withdrawal or performance issues (e.g., protocol downgrade).
+
+        let file_path = "binaries/calculate-reward.wasm";
+        let args = Args::new(
+            file_path,
+            "main",
+            vec![stake, duration_boost, volume_boost, penalty],
         );
         run(args).unwrap();
     }
