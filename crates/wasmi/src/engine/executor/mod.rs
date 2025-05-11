@@ -1,5 +1,5 @@
 pub(crate) use self::stack::{FrameRegisters, Stack};
-use self::{
+pub use self::{
     instr_ptr::InstructionPtr,
     instrs::{dispatch_host_func, execute_instrs},
     stack::CallFrame,

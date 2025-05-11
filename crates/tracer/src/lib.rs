@@ -3,10 +3,10 @@ use crate::{
     display::{DisplayExportedFuncs, DisplayFuncType, DisplaySequence, DisplayValue},
 };
 use anyhow::{anyhow, bail};
-use common::rv_trace::RVTraceRow;
+use common::rv_trace::{ELFInstruction, RVTraceRow};
 use context::Context;
 use std::{path::Path, process};
-use wasmi::{Func, FuncType, Val};
+use wasmi::{Config, EngineFunc, Func, FuncType, InstructionPtr, Val};
 
 pub mod args;
 pub mod context;
@@ -23,7 +23,6 @@ pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
     let func_args = utils::decode_func_args(&ty, args.func_args())?;
     let mut func_results = utils::prepare_func_results(&ty);
     typecheck_args(&func_name, &ty, &func_args)?;
-
     if args.verbose() {
         print_execution_start(args.wasm_file(), &func_name, &func_args);
     }
@@ -35,7 +34,6 @@ pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
             args.func_args().len()
         )
     }
-
     match func.call(ctx.store_mut(), &func_args, &mut func_results) {
         Ok(()) => {
             print_remaining_fuel(&args, &ctx);
@@ -59,7 +57,42 @@ pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
     let mut output = Vec::new();
     output.append(&mut rows);
     drop(rows);
+
     Ok(output)
+}
+
+/// Gets the code_map from the WASM module.
+#[tracing::instrument(skip_all)]
+pub fn decode(wasm_bytecode: &[u8]) -> (Vec<ELFInstruction>, Vec<(u64, u8)>) {
+    // Initiate the [`EngineFunc`] with the given bytecode.
+    // This is a workaround to get the code_map from the WASM module.
+    let engine = wasmi::Engine::new(&Config::default());
+    let _module = wasmi::Module::new(&engine, wasm_bytecode).unwrap();
+
+    // Get the &[Instructions] using the intialized [`EngineFunc`].
+    // HACK: Not sure if using `EngineFunc::from_u32(0)` will always get the full bytecode.
+    let instructions = engine
+        .code_map()
+        .get(None, EngineFunc::from_u32(0))
+        .unwrap()
+        .instrs();
+
+    // Keep track of the pc/instruction pointer.
+    let mut pc = InstructionPtr::new(instructions.as_ptr());
+    let base_addr = InstructionPtr::new(instructions.as_ptr());
+    const SKIP: usize = 1;
+    let elf_instructions: Vec<ELFInstruction> = instructions
+        .iter()
+        .copied()
+        .map(|instr| {
+            let instruction_address = pc.offset_from(base_addr) as u64;
+            let elf_instruction = instr.trace(instruction_address);
+            pc.add(SKIP);
+            elf_instruction
+        })
+        .collect();
+    // TODO: INIT_MEMORY?!!!
+    (elf_instructions, vec![])
 }
 
 /// Prints the remaining fuel so far if fuel metering was enabled.
@@ -162,7 +195,8 @@ mod test_lib {
             "main",
             vec![stake, duration_boost, volume_boost, penalty],
         );
-        trace(args).unwrap();
+        let execution_trace = trace(args).unwrap();
+        println!("Execution Trace: {execution_trace:#?}");
     }
 
     // #[test]

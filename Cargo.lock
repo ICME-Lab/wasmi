@@ -1910,6 +1910,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "common",
+ "tracing",
  "wasmi 0.46.0",
  "wasmi_wasi",
 ]

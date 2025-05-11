@@ -82,4 +82,13 @@ impl Tracer {
     pub fn end_instruction(&self) {
         *self.open.try_borrow_mut().unwrap() = false;
     }
+
+    /// Pop the last instruction from the trace.
+    /// This is used to remove the last instruction from the trace
+    pub fn pop_instruction(&self) {
+        if !*self.open.try_borrow().unwrap() {
+            return;
+        }
+        self.rows.try_borrow_mut().unwrap().pop();
+    }
 }

@@ -35,6 +35,7 @@ use self::{
 pub use self::{
     code_map::{EngineFunc, EngineFuncSpan, EngineFuncSpanIter},
     config::{CompilationMode, Config},
+    executor::InstructionPtr,
     limits::{EnforcedLimits, EnforcedLimitsError, StackLimits},
     resumable::{
         ResumableCall,
@@ -114,6 +115,13 @@ type Guarded<Idx> = GuardedEntity<EngineIdx, Idx>;
 #[derive(Debug, Clone)]
 pub struct Engine {
     inner: Arc<EngineInner>,
+}
+
+impl Engine {
+    /// Returns the code map of the [`Engine`].
+    pub fn code_map(&self) -> &CodeMap {
+        &self.inner.code_map
+    }
 }
 
 /// A weak reference to an [`Engine`].

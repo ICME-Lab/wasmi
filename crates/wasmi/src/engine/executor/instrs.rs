@@ -161,6 +161,9 @@ impl<'engine> Executor<'engine> {
                     forward_return!(self.execute_return_reg3(store.inner_mut(), values))
                 }
                 Instr::ReturnImm32 { value } => {
+                    // HACK: This opcode should be handled by the lookups
+                    self.tracer.pop_instruction();
+                    self.tracer.end_instruction();
                     forward_return!(self.execute_return_imm32(store.inner_mut(), value))
                 }
                 Instr::ReturnI64Imm32 { value } => {
