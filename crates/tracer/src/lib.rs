@@ -1,22 +1,28 @@
-use crate::{
-    args::Args,
-    display::{DisplayExportedFuncs, DisplayFuncType, DisplaySequence, DisplayValue},
-};
-use anyhow::{anyhow, bail};
+use crate::{args::Args, display::DisplayFuncType};
+use anyhow::bail;
 use common::rv_trace::{ELFInstruction, RVTraceRow};
 use context::Context;
-use std::{path::Path, process};
-use wasmi::{Config, EngineFunc, Func, FuncType, InstructionPtr, Val};
+use std::process;
+use utils::{
+    get_invoked_func,
+    print_execution_start,
+    print_pretty_results,
+    print_remaining_fuel,
+    typecheck_args,
+};
+use wasmi::{Config, InstructionPtr};
 
 pub mod args;
 pub mod context;
 pub mod display;
+pub mod error;
 pub mod utils;
 
 #[cfg(test)]
 mod tests;
 
 pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
+    // Build up WASM context and get the invoked function and validate i/o.
     let mut ctx = Context::new(&args)?;
     let (func_name, func) = get_invoked_func(&args, &ctx)?;
     let ty = func.ty(ctx.store());
@@ -34,6 +40,9 @@ pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
             args.func_args().len()
         )
     }
+
+    // Execute the function with the given arguments.
+    // The results are written to the mutable `func_results`.
     match func.call(ctx.store_mut(), &func_args, &mut func_results) {
         Ok(()) => {
             print_remaining_fuel(&args, &ctx);
@@ -52,7 +61,7 @@ pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
         }
     };
 
-    // let mut rows = emulator.get_mut_cpu().tracer.rows.try_borrow_mut().unwrap();
+    // Extract the execution trace from the context.
     let mut rows = ctx.store().tracer.rows.try_borrow_mut().unwrap();
     let mut output = Vec::new();
     output.append(&mut rows);
@@ -61,7 +70,12 @@ pub fn trace(args: Args) -> anyhow::Result<Vec<RVTraceRow>> {
     Ok(output)
 }
 
-/// Gets the code_map from the WASM module.
+/// Gets the code_map from the WASM module & converts it to `Vec<ELFInstruction>`.
+///
+/// # Returns
+///
+/// - `Vec<ELFInstruction>`: The decoded WASM instructions extracted from the WASM bytecode.
+/// - `Vec<(u64, u8)>`: The memory map of the actual WASM module i.e. the actual memory bytes of the WASM module.
 #[tracing::instrument(skip_all)]
 pub fn decode(wasm_bytecode: &[u8]) -> (Vec<ELFInstruction>, Vec<(u64, u8)>) {
     // Initiate the [`EngineFunc`] with the given bytecode.
@@ -70,17 +84,14 @@ pub fn decode(wasm_bytecode: &[u8]) -> (Vec<ELFInstruction>, Vec<(u64, u8)>) {
     let _module = wasmi::Module::new(&engine, wasm_bytecode).unwrap();
 
     // Get the &[Instructions] using the intialized [`EngineFunc`].
-    // HACK: Not sure if using `EngineFunc::from_u32(0)` will always get the full bytecode.
-    let instructions = engine
-        .code_map()
-        .get(None, EngineFunc::from_u32(0))
-        .unwrap()
-        .instrs();
+    let instructions = engine.instructions();
 
     // Keep track of the pc/instruction pointer.
     let mut pc = InstructionPtr::new(instructions.as_ptr());
     let base_addr = InstructionPtr::new(instructions.as_ptr());
     const SKIP: usize = 1;
+
+    // Convert the instructions to `Vec<ELFInstruction>`.
     let elf_instructions: Vec<ELFInstruction> = instructions
         .iter()
         .copied()
@@ -93,90 +104,6 @@ pub fn decode(wasm_bytecode: &[u8]) -> (Vec<ELFInstruction>, Vec<(u64, u8)>) {
         .collect();
     // TODO: INIT_MEMORY?!!!
     (elf_instructions, vec![])
-}
-
-/// Prints the remaining fuel so far if fuel metering was enabled.
-pub fn print_remaining_fuel(args: &Args, ctx: &Context) {
-    if let Some(given_fuel) = args.fuel() {
-        let remaining = ctx
-            .store()
-            .get_fuel()
-            .unwrap_or_else(|error| panic!("could not get the remaining fuel: {error}"));
-        let consumed = given_fuel.saturating_sub(remaining);
-        println!("fuel consumed: {consumed}, fuel remaining: {remaining}");
-    }
-}
-
-/// Performs minor typecheck on the function signature.
-///
-/// # Note
-///
-/// This is not strictly required but improve error reporting a bit.
-///
-/// # Errors
-///
-/// If too many or too few function arguments were given to the invoked function.
-pub fn typecheck_args(
-    func_name: &str,
-    func_ty: &FuncType,
-    args: &[Val],
-) -> Result<(), anyhow::Error> {
-    if func_ty.params().len() != args.len() {
-        bail!(
-            "invalid amount of arguments given to function {}. expected {} but received {}",
-            DisplayFuncType::new(func_name, func_ty),
-            func_ty.params().len(),
-            args.len()
-        )
-    }
-    Ok(())
-}
-
-/// Returns the invoked named function or the WASI entry point to the Wasm module if any.
-///
-/// # Errors
-///
-/// - If the function given via `--invoke` could not be found in the Wasm module.
-/// - If `--invoke` was not given and no WASI entry points were exported.
-pub fn get_invoked_func(args: &Args, ctx: &Context) -> Result<(String, Func), anyhow::Error> {
-    match args.invoked() {
-        Some(func_name) => {
-            let func = ctx
-                .get_func(func_name)
-                .map_err(|error| anyhow!("{error}\n\n{}", DisplayExportedFuncs::from(ctx)))?;
-            let func_name = func_name.into();
-            Ok((func_name, func))
-        }
-        None => {
-            // No `--invoke` flag was provided so we try to find
-            // the conventional WASI entry points `""` and `"_start"`.
-            if let Ok(func) = ctx.get_func("") {
-                Ok(("".into(), func))
-            } else if let Ok(func) = ctx.get_func("_start") {
-                Ok(("_start".into(), func))
-            } else {
-                bail!(
-                    "did not specify `--invoke` and could not find exported WASI entry point functions\n\n{}",
-                    DisplayExportedFuncs::from(ctx)
-                )
-            }
-        }
-    }
-}
-
-/// Prints a signalling text that Wasm execution has started.
-pub fn print_execution_start(wasm_file: &Path, func_name: &str, func_args: &[Val]) {
-    println!(
-        "executing File({wasm_file:?})::{func_name}({}) ...",
-        DisplaySequence::new(", ", func_args.iter().map(DisplayValue::from))
-    );
-}
-
-/// Prints the results of the Wasm computation in a human readable form.
-pub fn print_pretty_results(results: &[Val]) {
-    for result in results {
-        println!("{}", DisplayValue::from(result))
-    }
 }
 
 #[cfg(test)]

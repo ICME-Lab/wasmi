@@ -66,6 +66,7 @@ use alloc::{
 };
 use core::sync::atomic::{AtomicU32, Ordering};
 use spin::{Mutex, RwLock};
+use wasmi_ir::Instruction;
 use wasmparser::{FuncToValidate, FuncValidatorAllocations, ValidatorResources};
 
 #[cfg(doc)]
@@ -121,6 +122,15 @@ impl Engine {
     /// Returns the code map of the [`Engine`].
     pub fn code_map(&self) -> &CodeMap {
         &self.inner.code_map
+    }
+
+    /// Returns the Vec<[`Instruction`]> of the [`Engine`].
+    pub fn instructions(&self) -> &[Instruction] {
+        // HACK: Not sure if using `EngineFunc::from_u32(0)` will always get the full bytecode.
+        self.code_map()
+            .get(None, EngineFunc::from_u32(0))
+            .unwrap()
+            .instrs()
     }
 }
 
