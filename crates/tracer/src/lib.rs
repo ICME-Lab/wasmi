@@ -83,7 +83,7 @@ pub fn decode(wasm_bytecode: &[u8]) -> (Vec<ELFInstruction>, Vec<(u64, u8)>) {
     let engine = wasmi::Engine::new(&Config::default());
     let _module = wasmi::Module::new(&engine, wasm_bytecode).unwrap();
 
-    // Get the &[Instructions] using the intialized [`EngineFunc`].
+    // Get the `&[Instructions]` using the intialized [`EngineFunc`].
     let instructions = engine.instructions();
 
     // Keep track of the pc/instruction pointer.
@@ -91,12 +91,19 @@ pub fn decode(wasm_bytecode: &[u8]) -> (Vec<ELFInstruction>, Vec<(u64, u8)>) {
     let base_addr = InstructionPtr::new(instructions.as_ptr());
     const SKIP: usize = 1;
 
-    // Convert the instructions to `Vec<ELFInstruction>`.
+    // Convert the instructions to [`Vec<ELFInstruction>`].
+    const ACCOUNT_FOR_NOOP: u64 = 1;
     let elf_instructions: Vec<ELFInstruction> = instructions
         .iter()
         .copied()
         .map(|instr| {
-            let instruction_address = pc.offset_from(base_addr) as u64;
+            // We calculate the instruction address by taking the offset from the base address (first instruction).
+            //
+            // # Note
+            //
+            // We add `ACCOUNT_FOR_NOOP` to the instruction address to account for the fact that we prepend a NOOP instruction to the bytecode.
+            let instruction_address = pc.offset_from(base_addr) as u64 + ACCOUNT_FOR_NOOP;
+            debug_assert_eq!(instr, *pc.get());
             let elf_instruction = instr.trace(instruction_address);
             pc.add(SKIP);
             elf_instruction
@@ -107,23 +114,24 @@ pub fn decode(wasm_bytecode: &[u8]) -> (Vec<ELFInstruction>, Vec<(u64, u8)>) {
 }
 
 #[cfg(test)]
-mod test_lib {
-    use crate::{args::Args, trace};
+pub mod test_lib {
+    use std::fs;
+
+    use crate::{tests::add_sub_mul_32_wasm_program, trace};
 
     #[test]
     fn test_add_sub_mul_32() {
-        let stake = "1500".to_string(); // Amount of LP tokens or liquidity staked by the user.
-        let duration_boost = "3".to_string(); // Boost multiplier based on how long the stake was held (e.g., 3 = 3 months).
-        let volume_boost = "2".to_string(); // Additional multiplier based on trading volume in the pool during the staking period.
-        let penalty = "500".to_string(); // Penalty applied for early withdrawal or performance issues (e.g., protocol downgrade).
-        let file_path = "binaries/add_sub_mul_32.wat";
-        let args = Args::new(
-            file_path,
-            "main",
-            vec![stake, duration_boost, volume_boost, penalty],
-        );
-        let execution_trace = trace(args).unwrap();
+        let execution_trace = trace(add_sub_mul_32_wasm_program()).unwrap();
         println!("Execution Trace: {execution_trace:#?}");
+    }
+
+    #[test]
+    fn print_code_map() {
+        let wasm_bytecode = fs::read("binaries/bitwise_arith.wat").unwrap();
+        let engine = wasmi::Engine::new(&wasmi::Config::default());
+        let _module = wasmi::Module::new(&engine, wasm_bytecode).unwrap();
+        let instructions = engine.instructions();
+        println!("Instructions: {instructions:#?}");
     }
 
     // #[test]

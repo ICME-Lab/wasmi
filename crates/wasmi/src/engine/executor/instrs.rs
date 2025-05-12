@@ -2439,11 +2439,16 @@ impl<'engine> Executor<'engine> {
     }
 }
 
-impl<'engine> Executor<'engine> {
+impl Executor<'_> {
     fn pc(&self) -> usize {
+        const ACCOUNT_FOR_NOOP: usize = 1;
         let compiled_func = self.code_map.get(None, EngineFunc::from_u32(0)).unwrap();
         let base_ptr = InstructionPtr::new(compiled_func.instrs().as_ptr());
-        self.ip.offset_from(base_ptr) as usize
+
+        // # Note
+        //
+        // We add `ACCOUNT_FOR_NOOP` to the instruction address to account for the fact that we prepend a NOOP instruction to the bytecode.
+        self.ip.offset_from(base_ptr) as usize + ACCOUNT_FOR_NOOP
     }
 }
 
