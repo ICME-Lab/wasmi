@@ -15,7 +15,7 @@ exclude = ["benches/wat", "benches/wasm", "tests/spec/testsuite", "**.wast"]
 
 [dependencies]
 wasmi_core = { workspace = true }
-common = { path = "../../../zkml-jolt/common" }
+common = { workspace = true }
 
 [features]
 default = ["std"]

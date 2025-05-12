@@ -27,7 +27,7 @@ spin = { version = "0.9", default-features = false, features = [
 smallvec = { version = "1.13.1", features = ["union"] }
 multi-stash = { version = "0.2.0" }
 arrayvec = { version = "0.7.4", default-features = false }
-common = { path = "../../../zkml-jolt/common" }
+common = { workspace = true }
 
 [dev-dependencies]
 assert_matches = "1.5"

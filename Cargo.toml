@@ -52,6 +52,9 @@ wasi-common = { version = "31.0.0", default-features = false }
 wiggle = { version = "31.0.0", default-features = false }
 wasmtime = { version = "31.0.0", default-features = false }
 
+# Jolt dependencies
+common = { git = "https://github.com/ICME-Lab/zkml-jolt", branch = "wasm", package = "common" }
+
 [profile.bench]
 lto = "fat"
 codegen-units = 1
